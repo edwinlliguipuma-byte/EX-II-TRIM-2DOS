@@ -1,0 +1,702 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Evaluación Diagnóstica de Matemática - 2do BGU</title>
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- KaTeX CDN para renderizado de fórmulas y fracciones exactas -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.8/dist/katex.min.css">
+    <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.8/dist/katex.min.js"></script>
+    <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.8/dist/contrib/auto-render.min.js"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap');
+        body { font-family: 'Inter', sans-serif; background-color: #f8fafc; }
+        .katex-display { margin: 0.4em 0 !important; }
+        .katex { font-size: 1.12em; }
+    </style>
+</head>
+<body class="text-slate-800 antialiased min-h-screen py-6 px-4">
+
+    <!-- BARRA FLOTANTE DE TEMPORIZADOR -->
+    <div class="sticky top-2 z-40 max-w-4xl mx-auto mb-4">
+        <div class="bg-slate-900 text-white px-5 py-3 rounded-xl shadow-xl flex justify-between items-center border border-slate-700">
+            <div class="flex items-center gap-2">
+                <span class="w-3 h-3 rounded-full bg-emerald-500 animate-ping"></span>
+                <span class="text-xs md:text-sm font-bold uppercase tracking-wide text-slate-300">Evaluación en Vivo</span>
+            </div>
+            <div class="flex items-center gap-3">
+                <span class="text-xs text-slate-400 font-semibold hidden md:inline">Tiempo Restante:</span>
+                <div id="timerBox" class="bg-slate-800 border border-slate-700 px-4 py-1.5 rounded-lg flex items-center gap-2 font-mono text-lg font-extrabold text-blue-400">
+                    <svg class="w-5 h-5 text-blue-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+                    <span id="timerDisplay">40:00</span>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- PANTALLA DE INTENTO AGOTADO -->
+    <div id="alreadySubmittedOverlay" class="hidden max-w-4xl mx-auto mb-6 bg-red-50 border-2 border-red-500 rounded-2xl p-6 text-center shadow-lg">
+        <div class="w-16 h-16 bg-red-100 text-red-600 rounded-full flex items-center justify-center mx-auto mb-3 text-2xl font-bold">
+            🚫
+        </div>
+        <h2 class="text-xl font-extrabold text-red-900 mb-1">INTENTO AGOTADO - EVALUACIÓN COMPLETADA</h2>
+        <p class="text-sm text-red-700 mb-3">Ya has registrado tu único intento permitido para esta evaluación. Tus respuestas han sido guardadas en Google Sheets.</p>
+        
+        <div class="inline-block bg-white border border-red-300 px-6 py-2 rounded-xl text-lg font-black text-red-900 shadow-sm mb-4" id="savedScoreText">
+            Calificación Registrada: --/10
+        </div>
+
+        <!-- BOTÓN DE DESBLOQUEO PROTEGIDO CON CLAVE -->
+        <div class="pt-2 border-t border-red-200 mt-2">
+            <button onclick="resetTeacherAttempt()" class="bg-slate-800 hover:bg-slate-900 text-white font-bold text-xs px-4 py-2 rounded-lg shadow transition">
+                🔒 Desbloquear Intento (Requiere Clave Docente)
+            </button>
+        </div>
+    </div>
+
+    <div id="mainExamCard" class="max-w-4xl mx-auto bg-white shadow-xl rounded-2xl border border-slate-300 overflow-hidden">
+        
+        <!-- ENCABEZADO INSTITUCIONAL -->
+        <div class="p-6 border-b-2 border-slate-800 bg-slate-50">
+            <div class="grid grid-cols-12 gap-2 text-xs md:text-sm border border-slate-400 bg-white shadow-sm">
+                <div class="col-span-3 p-2 border-r border-b border-slate-400 font-semibold bg-slate-100">Nivel: Bachillerato</div>
+                <div class="col-span-3 p-2 border-r border-b border-slate-400 font-semibold bg-slate-100">Área: Matemática</div>
+                <div class="col-span-3 p-2 border-r border-b border-slate-400 font-semibold bg-slate-100">Asignatura: Matemática</div>
+                <div class="col-span-3 p-2 border-b border-slate-400 text-center font-extrabold bg-amber-100 text-amber-900">CALIFICACIÓN / 10</div>
+
+                <div class="col-span-4 p-2 border-r border-b border-slate-400 font-medium">Curso/año BGU: <strong>SEGUNDOS</strong></div>
+                <div class="col-span-5 p-2 border-r border-b border-slate-400 font-medium">Trimestre: <strong>II TRIMESTRE</strong></div>
+                <div class="col-span-3 p-2 border-b border-slate-400 font-medium">Límite: <strong>40 Minutos (1 intento)</strong></div>
+
+                <div class="col-span-12 p-2 border-b border-slate-400 font-medium bg-slate-50 flex justify-between items-center">
+                    <span>Nombre del Docente: <strong>Msc. Edwin Lliguipuma E.</strong></span>
+                    <button onclick="resetTeacherAttempt()" class="text-xs text-slate-400 hover:text-slate-600 font-semibold">🔒 Acceso Docente</button>
+                </div>
+            </div>
+
+            <!-- INSTRUCCIONES -->
+            <div class="mt-4 p-3.5 bg-amber-50 border-l-4 border-amber-500 rounded-r text-xs md:text-sm text-amber-950">
+                <p class="font-bold text-amber-900 mb-1">✏️ INSTRUCCIONES DE LA EVALUACIÓN:</p>
+                <ul class="list-disc list-inside space-y-0.5 text-slate-700">
+                    <li>Dispones de exactamente <strong>40 MINUTOS (40:00 min)</strong> para resolver las 10 preguntas (1 punto c/u).</li>
+                    <li>Solo dispones de <strong>1 INTENTO PERMITIDO</strong>. Al finalizar el tiempo o enviar, se cerrará el acceso.</li>
+                    <li>Selecciona tu especialidad e ingresa tu nombre completo para desplegar el formulario.</li>
+                </ul>
+            </div>
+
+            <!-- DATOS INFORMATIVOS -->
+            <div class="mt-4 grid grid-cols-1 md:grid-cols-3 gap-4 bg-blue-50/70 p-4 rounded-xl border border-blue-200">
+                <div class="md:col-span-2">
+                    <label class="block text-xs font-bold text-slate-700 uppercase mb-1">ESTUDIANTE (Nombre Completo) *</label>
+                    <input type="text" id="studentName" required placeholder="Ingrese sus nombres y apellidos completos" class="w-full border border-slate-300 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-600 bg-white">
+                </div>
+                <div>
+                    <label class="block text-xs font-bold text-slate-700 uppercase mb-1">ESPECIALIDAD *</label>
+                    <select id="specialty" onchange="onSpecialtyChange()" class="w-full border border-slate-300 rounded-md px-3 py-2 text-sm font-semibold focus:outline-none focus:ring-2 focus:ring-blue-600 bg-white">
+                        <option value="informatica">Informática</option>
+                        <option value="contabilidad">Contabilidad</option>
+                    </select>
+                </div>
+                <div>
+                    <label class="block text-xs font-bold text-slate-700 uppercase mb-1">PARALELO *</label>
+                    <select id="parallel" class="w-full border border-slate-300 rounded-md px-3 py-2 text-sm font-semibold focus:outline-none focus:ring-2 focus:ring-blue-600 bg-white">
+                        <!-- Opciones dinámicas -->
+                    </select>
+                </div>
+                <div>
+                    <label class="block text-xs font-bold text-slate-700 uppercase mb-1">CURSO</label>
+                    <input type="text" value="2do BGU" disabled class="w-full bg-slate-200 border border-slate-300 text-slate-700 font-bold rounded-md px-3 py-2 text-sm">
+                </div>
+                <div>
+                    <label class="block text-xs font-bold text-slate-700 uppercase mb-1">ASIGNATURA</label>
+                    <input type="text" value="Matemática" disabled class="w-full bg-slate-200 border border-slate-300 text-slate-700 font-bold rounded-md px-3 py-2 text-sm">
+                </div>
+            </div>
+        </div>
+
+        <!-- CONTENEDOR DE PREGUNTAS -->
+        <form id="examForm" class="p-6 space-y-8">
+            <div id="questionsContainer" class="space-y-8"></div>
+
+            <!-- BOTÓN DE ENVÍO -->
+            <div class="pt-4 text-center">
+                <button type="button" onclick="submitExam(false)" id="submitBtn" class="bg-blue-600 hover:bg-blue-700 text-white font-bold px-10 py-3.5 rounded-xl shadow-lg transition transform hover:-translate-y-0.5 flex items-center justify-center gap-2 mx-auto text-base">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8"></path></svg>
+                    FINALIZAR Y ENVIAR EVALUACIÓN
+                </button>
+            </div>
+        </form>
+    </div>
+
+    <!-- MODAL DE RESULTADO FINAL -->
+    <div id="resultModal" class="hidden fixed inset-0 bg-slate-900/70 backdrop-blur-sm flex items-center justify-center p-4 z-50">
+        <div class="bg-white rounded-2xl max-w-md w-full p-6 text-center shadow-2xl border border-slate-200">
+            <div class="w-20 h-20 bg-emerald-100 text-emerald-600 rounded-full flex items-center justify-center mx-auto mb-4 text-3xl font-extrabold" id="scoreBadge">
+                0/10
+            </div>
+            <h3 class="text-xl font-bold text-slate-900 mb-1">¡Evaluación Enviada Exitosamente!</h3>
+            <p class="text-slate-600 text-sm mb-4">Tus respuestas y nota han sido procesadas y registradas en Google Sheets.</p>
+            <div class="text-xs text-emerald-800 bg-emerald-50 border border-emerald-200 p-3 rounded-lg mb-4 font-semibold">
+                ✓ El intento único ha sido registrado correctamente.
+            </div>
+            <button onclick="location.reload()" class="w-full bg-slate-800 text-white py-2.5 rounded-lg text-sm font-bold hover:bg-slate-900 transition">
+                Aceptar y Cerrar
+            </button>
+        </div>
+    </div>
+
+    <script>
+        const GOOGLE_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbxLLOzCD_ZvuPN9YLe1-yg3exx7rXKalmfNIm4SytFQn7SglxXdwWrH0ZD976odbKkhlQ/exec';
+        const EXAM_DURATION_SECONDS = 2400; // 40 Minutos = 2400 segundos
+        const TEACHER_PIN = "2711"; // CLAVE SECRETA DE DOCENTE
+        let timerInterval = null;
+
+        // BANCO DE 10 PREGUNTAS CON INDICADOR DE EVALUACIÓN
+        const examDatabase = {
+            informatica: [
+                {
+                    id: 1, type: 'vf', pts: 1,
+                    indicator: 'I.M.5.3.1. Identifica el concepto analítico y gráfico de funciones inyectivas.',
+                    title: '1. VERDADERO O FALSO - Definición de Función Inyectiva',
+                    statement: 'Una función $f: A \\to B$ es inyectiva (o uno a uno) si a elementos distintos del dominio $A$ les corresponden imágenes distintas en el codominio $B$; es decir, si $x_1 \\neq x_2 \\implies f(x_1) \\neq f(x_2)$.',
+                    correct: 'V'
+                },
+                {
+                    id: 2, type: 'vf', pts: 1,
+                    indicator: 'I.M.5.3.1. Clasifica funciones en sobreyectivas y biyectivas según codominio y recorrido.',
+                    title: '2. VERDADERO O FALSO - Función Sobreyectiva y Biyectiva',
+                    statement: 'Una función $f: A \\to B$ es sobreyectiva cuando la imagen es igual al codominio $B$. Si es inyectiva y sobreyectiva simultáneamente, se clasifica como biyectiva.',
+                    correct: 'V'
+                },
+                {
+                    id: 3, type: 'vf', pts: 1,
+                    indicator: 'I.M.5.3.4. Reconoce las restricciones del dominio analítico en funciones racionales.',
+                    title: '3. VERDADERO O FALSO - Dominio de Funciones Racionales',
+                    statement: 'El dominio de una función racional $f(x) = \\dfrac{P(x)}{Q(x)}$ corresponde a todos los números reales $\\mathbb{R}$ excepto los valores de $x$ que anulan el denominador $Q(x) = 0$.',
+                    correct: 'V'
+                },
+                {
+                    id: 4, type: 'mc', pts: 1,
+                    indicator: 'I.M.5.3.4. Determina e interpreta asíntotas verticales y horizontales desde la representación gráfica.',
+                    title: '4. OPCIÓN MÚLTIPLE - Análisis Gráfico de Asíntotas',
+                    statement: 'Dada la gráfica cartesiana de la función racional $\\displaystyle f(x) = \\dfrac{2x + 1}{x^2 - 4}$:',
+                    svg: `<svg viewBox="0 0 600 320" class="w-full h-auto bg-white border border-slate-300 rounded-lg">
+                        <g stroke="#f1f5f9" stroke-width="1">
+                            <line x1="60" y1="20" x2="60" y2="300"/><line x1="180" y1="20" x2="180" y2="300"/><line x1="220" y1="20" x2="220" y2="300"/><line x1="300" y1="20" x2="300" y2="300"/><line x1="380" y1="20" x2="380" y2="300"/><line x1="420" y1="20" x2="420" y2="300"/><line x1="540" y1="20" x2="540" y2="300"/><line x1="60" y1="40" x2="540" y2="40"/><line x1="60" y1="100" x2="540" y2="100"/><line x1="60" y1="160" x2="540" y2="160"/><line x1="60" y1="220" x2="540" y2="220"/><line x1="60" y1="280" x2="540" y2="280"/>
+                        </g>
+                        <rect x="60" y="20" width="480" height="280" fill="none" stroke="#1e293b" stroke-width="1.5"/>
+                        <line x1="60" y1="160" x2="540" y2="160" stroke="#0f172a" stroke-width="1.5"/>
+                        <line x1="300" y1="20" x2="300" y2="300" stroke="#0f172a" stroke-width="1.5"/>
+                        <line x1="220" y1="20" x2="220" y2="300" stroke="#dc2626" stroke-width="2" stroke-dasharray="5,4"/>
+                        <line x1="380" y1="20" x2="380" y2="300" stroke="#dc2626" stroke-width="2" stroke-dasharray="5,4"/>
+                        <line x1="60" y1="160" x2="540" y2="160" stroke="#16a34a" stroke-width="2" stroke-dasharray="6,4"/>
+                        <path d="M 60,167 C 120,170 180,180 200,200 C 210,215 215,250 216,300" fill="none" stroke="#0284c7" stroke-width="2.5"/>
+                        <path d="M 224,20 C 230,80 260,150 280,160 C 300,165 340,175 376,300" fill="none" stroke="#0284c7" stroke-width="2.5"/>
+                        <path d="M 384,20 C 385,60 400,110 420,132 C 460,145 500,150 540,152" fill="none" stroke="#0284c7" stroke-width="2.5"/>
+                        <text x="300" y="315" text-anchor="middle" font-size="11" font-weight="bold">0</text>
+                        <text x="220" y="315" text-anchor="middle" font-size="11" fill="#dc2626" font-weight="bold">-2</text>
+                        <text x="380" y="315" text-anchor="middle" font-size="11" fill="#dc2626" font-weight="bold">2</text>
+                        <text x="50" y="164" text-anchor="end" font-size="11" font-weight="bold">y=0</text>
+                    </svg>`,
+                    options: [
+                        { id: 'a', text: 'a) Asíntotas verticales en $x = 2$ y $x = -2$; Asíntota horizontal en $y = 0$.' },
+                        { id: 'b', text: 'b) Asíntotas verticales en $x = 4$ y $x = -4$; Asíntota horizontal en $y = 2$.' },
+                        { id: 'c', text: 'c) Asíntotas verticales en $x = 2$ y $x = -2$; Asíntota horizontal en $y = 1$.' },
+                        { id: 'd', text: 'd) Sin asíntotas verticales; Asíntota horizontal en $y = 0$.' }
+                    ],
+                    correct: 'a'
+                },
+                {
+                    id: 5, type: 'mc', pts: 1,
+                    indicator: 'I.M.5.3.4. Calcula analíticamente el dominio excluyendo los ceros del denominador.',
+                    title: '5. OPCIÓN MÚLTIPLE - Dominio Analítico de la Función Racional',
+                    statement: 'Al analizar analíticamente el dominio de la función $f(x) = \\dfrac{2x + 1}{x^2 - 4}$, el conjunto de definición es:',
+                    options: [
+                        { id: 'a', text: 'a) $\\text{Dom } f = \\mathbb{R} \\setminus \\{-2, 2\\}$' },
+                        { id: 'b', text: 'b) $\\text{Dom } f = \\mathbb{R} \\setminus \\{4\\}$' },
+                        { id: 'c', text: 'c) $\\text{Dom } f = \\mathbb{R}$' },
+                        { id: 'd', text: 'd) $\\text{Dom } f = \\mathbb{R} \\setminus \\{0\\}$' }
+                    ],
+                    correct: 'a'
+                },
+                {
+                    id: 6, type: 'mc', pts: 1,
+                    indicator: 'I.M.5.2.1. Resuelve descomposición de funciones racionales en fracciones parciales mediante álgebra.',
+                    title: '6. OPCIÓN MÚLTIPLE - Fracciones Parciales (Constantes A y B)',
+                    statement: 'Dada la función $\\displaystyle g(x) = \\dfrac{3x + 3}{(x - 1)(x + 2)} = \\dfrac{A}{x - 1} + \\dfrac{B}{x + 2}$. Los valores de las constantes numeradoras son:',
+                    options: [
+                        { id: 'a', text: 'a) $A = 2 \\quad \\text{y} \\quad B = 1$' },
+                        { id: 'b', text: 'b) $A = 1 \\quad \\text{y} \\quad B = 2$' },
+                        { id: 'c', text: 'c) $A = 3 \\quad \\text{y} \\quad B = -1$' },
+                        { id: 'd', text: 'd) $A = -2 \\quad \\text{y} \\quad B = 1$' }
+                    ],
+                    correct: 'a'
+                },
+                {
+                    id: 7, type: 'mc', pts: 1,
+                    indicator: 'I.M.5.2.1. Plantea sistemas de ecuaciones lineales derivados de la descomposición en fracciones parciales.',
+                    title: '7. OPCIÓN MÚLTIPLE - Sistema de Ecuaciones en Fracciones Parciales',
+                    statement: 'Al descomponer $\\dfrac{3x + 3}{(x - 1)(x + 2)}$, el sistema de ecuaciones lineales $2\\times 2$ resultante para hallar $A$ y $B$ es:',
+                    options: [
+                        { id: 'a', text: 'a) $\\begin{cases} A + B = 3 \\\\ 2A - B = 3 \\end{cases}$' },
+                        { id: 'b', text: 'b) $\\begin{cases} A + B = 1 \\\\ A - B = 2 \\end{cases}$' },
+                        { id: 'c', text: 'c) $\\begin{cases} A - B = 3 \\\\ 2A + B = 0 \\end{cases}$' },
+                        { id: 'd', text: 'd) $\\begin{cases} A + B = 0 \\\\ A + 2B = 3 \\end{cases}$' }
+                    ],
+                    correct: 'a'
+                },
+                {
+                    id: 8, type: 'mc', pts: 1,
+                    indicator: 'I.M.5.3.5. Opera, suma y simplifica expresiones algebraicas racionales.',
+                    title: '8. OPCIÓN MÚLTIPLE - Suma y Simplificación Racional',
+                    statement: 'Dadas $f(x) = \\dfrac{1}{x - 1}$ y $g(x) = \\dfrac{2}{x + 2}$, la función simplificada $h(x) = f(x) + g(x)$ es:',
+                    options: [
+                        { id: 'a', text: 'a) $h(x) = \\dfrac{3x}{(x-1)(x+2)}$' },
+                        { id: 'b', text: 'b) $h(x) = \\dfrac{3x + 1}{(x-1)(x+2)}$' },
+                        { id: 'c', text: 'c) $h(x) = \\dfrac{3x + 3}{x^2 - 2}$' },
+                        { id: 'd', text: 'd) $h(x) = \\dfrac{x + 3}{(x-1)(x+2)}$' }
+                    ],
+                    correct: 'a'
+                },
+                {
+                    id: 9, type: 'mc', pts: 1,
+                    indicator: 'I.M.5.3.3. Analiza la amplitud, valor máximo y periodo de la función senoidal.',
+                    title: '9. OPCIÓN MÚLTIPLE - Análisis de la Función Trigonométrica Seno',
+                    statement: 'Dada la gráfica cartesiana de la función trigonométrica $\\displaystyle f(x) = 3\\cdot\\text{sen}(x)$ en el intervalo $[0, 2\\pi]$:',
+                    svg: `<svg viewBox="0 0 600 280" class="w-full h-auto bg-white border border-slate-300 rounded-lg">
+                        <g stroke="#f1f5f9" stroke-width="1">
+                            <line x1="60" y1="40" x2="540" y2="40"/>
+                            <line x1="60" y1="130" x2="540" y2="130"/>
+                            <line x1="60" y1="220" x2="540" y2="220"/>
+                            <line x1="180" y1="20" x2="180" y2="240"/>
+                            <line x1="300" y1="20" x2="300" y2="240"/>
+                            <line x1="420" y1="20" x2="420" y2="240"/>
+                            <line x1="540" y1="20" x2="540" y2="240"/>
+                        </g>
+                        <rect x="60" y="20" width="480" height="220" fill="none" stroke="#1e293b" stroke-width="1.5"/>
+                        <line x1="60" y1="130" x2="540" y2="130" stroke="#0f172a" stroke-width="1.5"/>
+                        <line x1="60" y1="20" x2="60" y2="240" stroke="#0f172a" stroke-width="1.5"/>
+                        <line x1="60" y1="40" x2="540" y2="40" stroke="#dc2626" stroke-width="1.5" stroke-dasharray="4,4"/>
+                        <line x1="60" y1="220" x2="540" y2="220" stroke="#16a34a" stroke-width="1.5" stroke-dasharray="4,4"/>
+                        <path d="M 60,130 C 115,130 125,40 180,40 C 235,40 245,130 300,130 C 355,130 365,220 420,220 C 475,220 485,130 540,130" fill="none" stroke="#0284c7" stroke-width="3"/>
+                        <text x="60" y="255" text-anchor="middle" font-size="11" font-weight="bold">0</text>
+                        <text x="180" y="255" text-anchor="middle" font-size="11" font-weight="bold">π/2</text>
+                        <text x="300" y="255" text-anchor="middle" font-size="11" font-weight="bold">π</text>
+                        <text x="420" y="255" text-anchor="middle" font-size="11" font-weight="bold">3π/2</text>
+                        <text x="540" y="255" text-anchor="middle" font-size="11" font-weight="bold">2π</text>
+                        <text x="48" y="44" text-anchor="end" font-size="11" fill="#dc2626" font-weight="bold">3</text>
+                        <text x="48" y="134" text-anchor="end" font-size="11" font-weight="bold">0</text>
+                        <text x="48" y="224" text-anchor="end" font-size="11" fill="#16a34a" font-weight="bold">-3</text>
+                    </svg>`,
+                    options: [
+                        { id: 'a', text: 'a) Amplitud = 3; Valor Máximo = 3; Periodo $T = 2\\pi\\text{ rad}$.' },
+                        { id: 'b', text: 'b) Amplitud = 6; Valor Máximo = 6; Periodo $T = \\pi\\text{ rad}$.' },
+                        { id: 'c', text: 'c) Amplitud = 1; Valor Máximo = 3; Periodo $T = 4\\pi\\text{ rad}$.' },
+                        { id: 'd', text: 'd) Amplitud = 3; Valor Máximo = 1; Periodo $T = \\pi\\text{ rad}$.' }
+                    ],
+                    correct: 'a'
+                },
+                {
+                    id: 10, type: 'mc', pts: 1,
+                    indicator: 'I.M.5.3.3. Determina el conjunto imagen o recorrido de funciones trigonométricas.',
+                    title: '10. OPCIÓN MÚLTIPLE - Recorrido de la Función Trigonométrica',
+                    statement: 'El recorrido o conjunto imagen ($\text{Rec } f$) de la función trigonométrica $f(x) = 3\\cdot\\text{sen}(x)$ en el intervalo de un periodo completo es:',
+                    options: [
+                        { id: 'a', text: 'a) $\\text{Rec } f = [-3, 3]$' },
+                        { id: 'b', text: 'b) $\\text{Rec } f = [0, 3]$' },
+                        { id: 'c', text: 'c) $\\text{Rec } f = [-1, 1]$' },
+                        { id: 'd', text: 'd) $\\text{Rec } f = \\mathbb{R}$' }
+                    ],
+                    correct: 'a'
+                }
+            ],
+            contabilidad: [
+                {
+                    id: 1, type: 'vf', pts: 1,
+                    indicator: 'I.M.5.3.1. Aplica el criterio de la recta horizontal para determinar inyectividad.',
+                    title: '1. VERDADERO O FALSO - Criterio de la Recta Horizontal',
+                    statement: 'Una función $f: \\mathbb{R} \\to \\mathbb{R}$ es inyectiva si y solo si cualquier recta horizontal trazada sobre su gráfica cartesiana interseca a la curva en un único punto.',
+                    correct: 'V'
+                },
+                {
+                    id: 2, type: 'vf', pts: 1,
+                    indicator: 'I.M.5.3.1. Resuelve operaciones de suma entre funciones reales y determina su dominio resultante.',
+                    title: '2. VERDADERO O FALSO - Operaciones con Funciones',
+                    statement: 'Dadas $f(x) = 2x + 3$ y $g(x) = x - 1$, la función suma $(f + g)(x)$ es igual a $3x + 2$, y su dominio corresponde a todos los números reales $\\mathbb{R}$.',
+                    correct: 'V'
+                },
+                {
+                    id: 3, type: 'vf', pts: 1,
+                    indicator: 'I.M.5.3.4. Reconoce las asíntotas verticales analíticamente en funciones racionales.',
+                    title: '3. VERDADERO O FALSO - Asíntotas Verticales de Funciones Racionales',
+                    statement: 'Las asíntotas verticales de una función racional simplificada corresponden a las rectas $x = a$, donde $a$ es un valor que anula el denominador.',
+                    correct: 'V'
+                },
+                {
+                    id: 4, type: 'mc', pts: 1,
+                    indicator: 'I.M.5.3.4. Interpreta gráficamente asíntotas verticales y horizontales.',
+                    title: '4. OPCIÓN MÚLTIPLE - Análisis Gráfico de Asíntotas (Contabilidad)',
+                    statement: 'A continuación se presenta la gráfica cartesiana de la función racional $\\displaystyle f(x) = \\dfrac{3x - 2}{x^2 - 9}$:',
+                    svg: `<svg viewBox="0 0 600 320" class="w-full h-auto bg-white border border-slate-300 rounded-lg">
+                        <g stroke="#f1f5f9" stroke-width="1">
+                            <line x1="60" y1="20" x2="60" y2="300"/><line x1="180" y1="20" x2="180" y2="300"/><line x1="300" y1="20" x2="300" y2="300"/><line x1="420" y1="20" x2="420" y2="300"/><line x1="540" y1="20" x2="540" y2="300"/><line x1="60" y1="80" x2="540" y2="80"/><line x1="60" y1="160" x2="540" y2="160"/><line x1="60" y1="240" x2="540" y2="240"/>
+                        </g>
+                        <rect x="60" y="20" width="480" height="280" fill="none" stroke="#1e293b" stroke-width="1.5"/>
+                        <line x1="60" y1="160" x2="540" y2="160" stroke="#0f172a" stroke-width="1.5"/>
+                        <line x1="300" y1="20" x2="300" y2="300" stroke="#0f172a" stroke-width="1.5"/>
+                        <line x1="180" y1="20" x2="180" y2="300" stroke="#dc2626" stroke-width="2" stroke-dasharray="5,4"/>
+                        <line x1="420" y1="20" x2="420" y2="300" stroke="#dc2626" stroke-width="2" stroke-dasharray="5,4"/>
+                        <line x1="60" y1="160" x2="540" y2="160" stroke="#16a34a" stroke-width="2" stroke-dasharray="6,4"/>
+                        <path d="M 60,175 C 100,180 140,200 174,300" fill="none" stroke="#0284c7" stroke-width="2.5"/>
+                        <path d="M 186,20 C 190,60 250,130 327,160 C 370,175 410,240 414,300" fill="none" stroke="#0284c7" stroke-width="2.5"/>
+                        <path d="M 426,20 C 430,70 450,120 540,148" fill="none" stroke="#0284c7" stroke-width="2.5"/>
+                        <text x="300" y="315" text-anchor="middle" font-size="11" font-weight="bold">0</text>
+                        <text x="180" y="315" text-anchor="middle" font-size="11" fill="#dc2626" font-weight="bold">-3</text>
+                        <text x="420" y="315" text-anchor="middle" font-size="11" fill="#dc2626" font-weight="bold">3</text>
+                        <text x="50" y="164" text-anchor="end" font-size="11" font-weight="bold">y=0</text>
+                    </svg>`,
+                    options: [
+                        { id: 'a', text: 'a) Asíntotas verticales en $x = 3$ y $x = -3$; Asíntota horizontal en $y = 0$.' },
+                        { id: 'b', text: 'b) Asíntotas verticales en $x = 9$ y $x = -9$; Asíntota horizontal en $y = 3$.' },
+                        { id: 'c', text: 'c) Asíntotas verticales en $x = 3$ y $x = -3$; Asíntota horizontal en $y = 1$.' },
+                        { id: 'd', text: 'd) Sin asíntotas verticales; Asíntota horizontal en $y = 0$.' }
+                    ],
+                    correct: 'a'
+                },
+                {
+                    id: 5, type: 'mc', pts: 1,
+                    indicator: 'I.M.5.3.4. Obtiene el conjunto dominio excluyendo los ceros reales del denominador.',
+                    title: '5. OPCIÓN MÚLTIPLE - Dominio de la Función Racional',
+                    statement: 'El dominio de definición analítico de la función $f(x) = \\dfrac{3x - 2}{x^2 - 9}$ es:',
+                    options: [
+                        { id: 'a', text: 'a) $\\text{Dom } f = \\mathbb{R} \\setminus \\{-3, 3\\}$' },
+                        { id: 'b', text: 'b) $\\text{Dom } f = \\mathbb{R} \\setminus \\{9\\}$' },
+                        { id: 'c', text: 'c) $\\text{Dom } f = \\mathbb{R}$' },
+                        { id: 'd', text: 'd) $\\text{Dom } f = \\mathbb{R} \\setminus \\{2/3\\}$' }
+                    ],
+                    correct: 'a'
+                },
+                {
+                    id: 6, type: 'mc', pts: 1,
+                    indicator: 'I.M.5.2.1. Determina los coeficientes numeradores en la descomposición de fracciones parciales.',
+                    title: '6. OPCIÓN MÚLTIPLE - Fracciones Parciales (Contabilidad)',
+                    statement: 'Dada la función racional $g(x) = \\dfrac{5x + 1}{(x - 1)(x + 2)} = \\dfrac{A}{x - 1} + \\dfrac{B}{x + 2}$. Los valores de $A$ y $B$ son:',
+                    options: [
+                        { id: 'a', text: 'a) $A = 2 \\quad \\text{y} \\quad B = 3$' },
+                        { id: 'b', text: 'b) $A = 3 \\quad \\text{y} \\quad B = 2$' },
+                        { id: 'c', text: 'c) $A = 1 \\quad \\text{y} \\quad B = 4$' },
+                        { id: 'd', text: 'd) $A = -2 \\quad \\text{y} \\quad B = -3$' }
+                    ],
+                    correct: 'a'
+                },
+                {
+                    id: 7, type: 'mc', pts: 1,
+                    indicator: 'I.M.5.2.1. Formula el sistema de ecuaciones para constantes desconocidas.',
+                    title: '7. OPCIÓN MÚLTIPLE - Sistema Resultante de Fracciones Parciales',
+                    statement: 'Al descomponer $\\dfrac{5x + 1}{(x - 1)(x + 2)}$, el sistema de ecuaciones para las constantes $A$ y $B$ es:',
+                    options: [
+                        { id: 'a', text: 'a) $\\begin{cases} A + B = 5 \\\\ 2A - B = 1 \\end{cases}$' },
+                        { id: 'b', text: 'b) $\\begin{cases} A + B = 1 \\\\ A - B = 5 \\end{cases}$' },
+                        { id: 'c', text: 'c) $\\begin{cases} 2A + B = 5 \\\\ A - 2B = 1 \\end{cases}$' },
+                        { id: 'd', text: 'd) $\\begin{cases} A - B = 0 \\\\ A + B = 5 \\end{cases}$' }
+                    ],
+                    correct: 'a'
+                },
+                {
+                    id: 8, type: 'mc', pts: 1,
+                    indicator: 'I.M.5.3.5. Simplifica y reduce expresiones racionales complejas.',
+                    title: '8. OPCIÓN MÚLTIPLE - Operación Algebraica de Funciones Racionales',
+                    statement: 'Dadas $f(x) = \\dfrac{2}{x + 1}$ y $g(x) = \\dfrac{1}{x - 3}$, al resolver $h(x) = f(x) + g(x)$ se obtiene:',
+                    options: [
+                        { id: 'a', text: 'a) $h(x) = \\dfrac{3x - 5}{(x+1)(x - 3)}$' },
+                        { id: 'b', text: 'b) $h(x) = \\dfrac{3x + 1}{(x+1)(x - 3)}$' },
+                        { id: 'c', text: 'c) $h(x) = \\dfrac{3x}{x^2 - 3}$' },
+                        { id: 'd', text: 'd) $h(x) = \\dfrac{2x - 5}{(x+1)(x - 3)}$' }
+                    ],
+                    correct: 'a'
+                },
+                {
+                    id: 9, type: 'mc', pts: 1,
+                    indicator: 'I.M.5.3.3. Identifica características de la función cosenoidal (amplitud y periodo).',
+                    title: '9. OPCIÓN MÚLTIPLE - Análisis de la Función Coseno',
+                    statement: 'Dada la función trigonométrica $f(x) = 2\\cdot\\text{cos}(x)$ en el intervalo $[0, 2\\pi]$:',
+                    svg: `<svg viewBox="0 0 600 280" class="w-full h-auto bg-white border border-slate-300 rounded-lg">
+                        <g stroke="#f1f5f9" stroke-width="1">
+                            <line x1="60" y1="50" x2="540" y2="50"/>
+                            <line x1="60" y1="130" x2="540" y2="130"/>
+                            <line x1="60" y1="210" x2="540" y2="210"/>
+                            <line x1="180" y1="20" x2="180" y2="240"/>
+                            <line x1="300" y1="20" x2="300" y2="240"/>
+                            <line x1="420" y1="20" x2="420" y2="240"/>
+                            <line x1="540" y1="20" x2="540" y2="240"/>
+                        </g>
+                        <rect x="60" y="20" width="480" height="220" fill="none" stroke="#1e293b" stroke-width="1.5"/>
+                        <line x1="60" y1="130" x2="540" y2="130" stroke="#0f172a" stroke-width="1.5"/>
+                        <line x1="60" y1="20" x2="60" y2="240" stroke="#0f172a" stroke-width="1.5"/>
+                        <line x1="60" y1="50" x2="540" y2="50" stroke="#dc2626" stroke-width="1.5" stroke-dasharray="4,4"/>
+                        <line x1="60" y1="210" x2="540" y2="210" stroke="#16a34a" stroke-width="1.5" stroke-dasharray="4,4"/>
+                        <path d="M 60,50 C 115,50 125,130 180,130 C 235,130 245,210 300,210 C 355,210 365,130 420,130 C 475,130 485,50 540,50" fill="none" stroke="#0284c7" stroke-width="3"/>
+                        <text x="60" y="255" text-anchor="middle" font-size="11" font-weight="bold">0</text>
+                        <text x="180" y="255" text-anchor="middle" font-size="11" font-weight="bold">π/2</text>
+                        <text x="300" y="255" text-anchor="middle" font-size="11" font-weight="bold">π</text>
+                        <text x="420" y="255" text-anchor="middle" font-size="11" font-weight="bold">3π/2</text>
+                        <text x="540" y="255" text-anchor="middle" font-size="11" font-weight="bold">2π</text>
+                        <text x="48" y="54" text-anchor="end" font-size="11" fill="#dc2626" font-weight="bold">2</text>
+                        <text x="48" y="134" text-anchor="end" font-size="11" font-weight="bold">0</text>
+                        <text x="48" y="214" text-anchor="end" font-size="11" fill="#16a34a" font-weight="bold">-2</text>
+                    </svg>`,
+                    options: [
+                        { id: 'a', text: 'a) Amplitud = 2; Valor Máximo = 2; Periodo $T = 2\\pi\\text{ rad}$.' },
+                        { id: 'b', text: 'b) Amplitud = 4; Valor Máximo = 4; Periodo $T = \\pi\\text{ rad}$.' },
+                        { id: 'c', text: 'c) Amplitud = 1; Valor Máximo = 2; Periodo $T = 4\\pi\\text{ rad}$.' },
+                        { id: 'd', text: 'd) Amplitud = 2; Valor Máximo = 1; Periodo $T = \\pi\\text{ rad}$.' }
+                    ],
+                    correct: 'a'
+                },
+                {
+                    id: 10, type: 'mc', pts: 1,
+                    indicator: 'I.M.5.3.3. Determina el recorrido alcanzado por la función coseno.',
+                    title: '10. OPCIÓN MÚLTIPLE - Recorrido de la Función Coseno',
+                    statement: 'El recorrido o conjunto imagen ($\text{Rec } f$) alcanzado por la función trigonométrica $f(x) = 2\\cdot\\text{cos}(x)$ es:',
+                    options: [
+                        { id: 'a', text: 'a) $\\text{Rec } f = [-2, 2]$' },
+                        { id: 'b', text: 'b) $\\text{Rec } f = [0, 2]$' },
+                        { id: 'c', text: 'c) $\\text{Rec } f = [-1, 1]$' },
+                        { id: 'd', text: 'd) $\\text{Rec } f = \\mathbb{R}$' }
+                    ],
+                    correct: 'a'
+                }
+            ]
+        };
+
+        // FUNCIÓN PROTEGIDA CON LA CLAVE 2711 PARA RESETEAR INTENTO
+        function resetTeacherAttempt() {
+            const inputPin = prompt("🔑 INGRESE LA CLAVE DE DOCENTE PARA REINICIAR EL INTENTO:");
+            if (inputPin === TEACHER_PIN) {
+                localStorage.removeItem('examSubmitted_2doBGU');
+                localStorage.removeItem('examStartTime_2doBGU');
+                alert('🔓 Se ha desbloqueado la evaluación. Puedes realizar un nuevo intento.');
+                location.reload();
+            } else if (inputPin !== null) {
+                alert('❌ Clave incorrecta. Acceso denegado.');
+            }
+        }
+
+        function initTimerAndAttemptCheck() {
+            const savedAttempt = localStorage.getItem('examSubmitted_2doBGU');
+            if (savedAttempt) {
+                const data = JSON.parse(savedAttempt);
+                document.getElementById('alreadySubmittedOverlay').classList.remove('hidden');
+                document.getElementById('savedScoreText').innerText = `Calificación Registrada: ${data.score}`;
+                document.getElementById('mainExamCard').classList.add('opacity-40', 'pointer-events-none');
+                document.getElementById('timerDisplay').innerText = "FINALIZADO";
+                return;
+            }
+
+            let startTime = localStorage.getItem('examStartTime_2doBGU');
+            if (!startTime) {
+                startTime = Date.now();
+                localStorage.setItem('examStartTime_2doBGU', startTime);
+            }
+
+            timerInterval = setInterval(() => {
+                const elapsedSeconds = Math.floor((Date.now() - parseInt(startTime)) / 1000);
+                const remainingSeconds = EXAM_DURATION_SECONDS - elapsedSeconds;
+
+                if (remainingSeconds <= 0) {
+                    clearInterval(timerInterval);
+                    document.getElementById('timerDisplay').innerText = "00:00";
+                    alert('⏰ ¡El tiempo de 40 Minutos ha expirado! Tu evaluación se enviará automáticamente.');
+                    submitExam(true);
+                } else {
+                    const minutes = Math.floor(remainingSeconds / 60);
+                    const seconds = remainingSeconds % 60;
+                    const formattedTime = `${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}`;
+                    
+                    const timerEl = document.getElementById('timerDisplay');
+                    const timerBox = document.getElementById('timerBox');
+                    timerEl.innerText = formattedTime;
+
+                    if (remainingSeconds <= 300) {
+                        timerBox.classList.remove('text-blue-400', 'bg-slate-800');
+                        timerBox.classList.add('text-red-500', 'bg-red-950', 'animate-pulse', 'border-red-600');
+                    }
+                }
+            }, 1000);
+        }
+
+        function updateParallels() {
+            const spec = document.getElementById('specialty').value;
+            const parallelSelect = document.getElementById('parallel');
+            parallelSelect.innerHTML = '';
+
+            const options = spec === 'informatica' ? ['A', 'B', 'C'] : ['A', 'B'];
+            options.forEach(p => {
+                const opt = document.createElement('option');
+                opt.value = p;
+                opt.textContent = `${spec === 'informatica' ? 'Informática' : 'Contabilidad'} "${p}"`;
+                parallelSelect.appendChild(opt);
+            });
+        }
+
+        function onSpecialtyChange() {
+            updateParallels();
+            renderQuestions();
+        }
+
+        function renderQuestions() {
+            const spec = document.getElementById('specialty').value;
+            const container = document.getElementById('questionsContainer');
+            const questions = examDatabase[spec];
+
+            container.innerHTML = '';
+
+            questions.forEach((q) => {
+                const card = document.createElement('div');
+                card.className = "border border-slate-300 rounded-xl overflow-hidden shadow-sm bg-white";
+                
+                let html = `
+                    <div class="bg-slate-100 p-3 border-b border-slate-300 flex justify-between items-center">
+                        <span class="text-xs font-bold text-slate-700">ÍTEM ${q.id} DE 10</span>
+                        <span class="bg-blue-600 text-white text-xs font-bold px-3 py-1 rounded">1 PUNTO</span>
+                    </div>
+                    <div class="p-5">
+                        <div class="mb-3 p-2.5 bg-blue-50/60 border-l-4 border-blue-600 text-xs text-slate-700 rounded-r font-medium">
+                            <strong class="text-blue-900">Indicador de Evaluación:</strong> ${q.indicator}
+                        </div>
+                        <h3 class="font-bold text-slate-900 text-base mb-2">${q.title}</h3>
+                        <p class="text-sm text-slate-800 leading-relaxed mb-3">${q.statement}</p>
+                `;
+
+                if (q.svg) {
+                    html += `<div class="my-4">${q.svg}</div>`;
+                }
+
+                if (q.type === 'vf') {
+                    html += `
+                        <div class="flex gap-6 mt-4 p-3 bg-slate-50 border border-slate-200 rounded-lg">
+                            <label class="inline-flex items-center text-sm font-semibold cursor-pointer">
+                                <input type="radio" name="q${q.id}" value="V" required class="w-4 h-4 text-blue-600">
+                                <span class="ml-2">[ V ] Verdadero</span>
+                            </label>
+                            <label class="inline-flex items-center text-sm font-semibold cursor-pointer">
+                                <input type="radio" name="q${q.id}" value="F" class="w-4 h-4 text-blue-600">
+                                <span class="ml-2">[ F ] Falso</span>
+                            </label>
+                        </div>
+                    `;
+                } else if (q.type === 'mc') {
+                    html += `<div class="space-y-2.5 mt-3">`;
+                    q.options.forEach(opt => {
+                        html += `
+                            <label class="flex items-center p-3 border border-slate-200 rounded-lg hover:bg-blue-50/50 transition cursor-pointer">
+                                <input type="radio" name="q${q.id}" value="${opt.id}" required class="w-4 h-4 text-blue-600">
+                                <span class="ml-3 text-sm text-slate-800">${opt.text}</span>
+                            </label>
+                        `;
+                    });
+                    html += `</div>`;
+                }
+
+                html += `</div>`;
+                card.innerHTML = html;
+                container.appendChild(card);
+            });
+
+            if (window.renderMathInElement) {
+                renderMathInElement(container, {
+                    delimiters: [
+                        {left: '$$', right: '$$', display: true},
+                        {left: '$', right: '$', display: false}
+                    ],
+                    throwOnError: false
+                });
+            }
+        }
+
+        async function submitExam(isAutoSubmit = false) {
+            const nameInput = document.getElementById('studentName');
+            const name = nameInput.value.trim();
+            const spec = document.getElementById('specialty').value;
+            const parallel = document.getElementById('parallel').value;
+
+            if (!name && !isAutoSubmit) {
+                alert('⚠️ Por favor ingrese el nombre del estudiante antes de enviar.');
+                nameInput.focus();
+                return;
+            }
+
+            const questions = examDatabase[spec];
+            let score = 0;
+            let missing = false;
+
+            questions.forEach(q => {
+                const selected = document.querySelector(`input[name="q${q.id}"]:checked`)?.value;
+                if (!selected) {
+                    missing = true;
+                } else if (selected === q.correct) {
+                    score += 1;
+                }
+            });
+
+            if (missing && !isAutoSubmit) {
+                alert('⚠️ Por favor responda las 10 preguntas antes de enviar la evaluación.');
+                return;
+            }
+
+            if (timerInterval) clearInterval(timerInterval);
+
+            const now = new Date();
+            const day = String(now.getDate()).padStart(2, '0');
+            const month = String(now.getMonth() + 1).padStart(2, '0');
+            const year = now.getFullYear();
+            const hours = String(now.getHours()).padStart(2, '0');
+            const minutes = String(now.getMinutes()).padStart(2, '0');
+            const fechaFormateada = `${day}/${month}/${year}, ${hours}:${minutes}`;
+
+            const finalScoreStr = `${score}/10`;
+
+            localStorage.setItem('examSubmitted_2doBGU', JSON.stringify({
+                score: finalScoreStr,
+                date: fechaFormateada
+            }));
+
+            const payload = {
+                fecha: fechaFormateada,
+                estudiante: (name || "ESTUDIANTE (TIEMPO AGOTADO)").toUpperCase(),
+                curso: '2do BGU',
+                especialidad: spec.toUpperCase(),
+                paralelo: parallel,
+                puntaje: finalScoreStr
+            };
+
+            const submitBtn = document.getElementById('submitBtn');
+            submitBtn.disabled = true;
+            submitBtn.classList.add('opacity-50', 'cursor-not-allowed');
+            submitBtn.innerHTML = 'Enviando a Google Sheets...';
+
+            try {
+                await fetch(GOOGLE_SCRIPT_URL, {
+                    method: 'POST',
+                    mode: 'no-cors',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(payload)
+                });
+            } catch (err) {
+                console.error("Error en la transmisión:", err);
+            }
+
+            document.getElementById('scoreBadge').innerText = finalScoreStr;
+            document.getElementById('resultModal').classList.remove('hidden');
+        }
+
+        window.onload = () => {
+            updateParallels();
+            renderQuestions();
+            initTimerAndAttemptCheck();
+        };
+    </script>
+</body>
+</html>
