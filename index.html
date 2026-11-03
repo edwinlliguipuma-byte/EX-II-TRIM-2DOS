@@ -19,7 +19,7 @@
 </head>
 <body class="text-slate-800 antialiased min-h-screen py-6 px-4">
 
-    <!-- BARRA FLOTANTE DE TEMPORIZADOR -->
+    <!-- BARRA FLOTANTE DE TEMPORIZADOR DE 1 HORA -->
     <div class="sticky top-2 z-40 max-w-4xl mx-auto mb-4">
         <div class="bg-slate-900 text-white px-5 py-3 rounded-xl shadow-xl flex justify-between items-center border border-slate-700">
             <div class="flex items-center gap-2">
@@ -30,7 +30,7 @@
                 <span class="text-xs text-slate-400 font-semibold hidden md:inline">Tiempo Restante:</span>
                 <div id="timerBox" class="bg-slate-800 border border-slate-700 px-4 py-1.5 rounded-lg flex items-center gap-2 font-mono text-lg font-extrabold text-blue-400">
                     <svg class="w-5 h-5 text-blue-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
-                    <span id="timerDisplay">40:00</span>
+                    <span id="timerDisplay">60:00</span>
                 </div>
             </div>
         </div>
@@ -48,7 +48,7 @@
             Calificación Registrada: --/10
         </div>
 
-        <!-- BOTÓN DE DESBLOQUEO PROTEGIDO CON CLAVE -->
+        <!-- BOTÓN DE DESBLOQUEO PROTEGIDO CON CLAVE 2711 -->
         <div class="pt-2 border-t border-red-200 mt-2">
             <button onclick="resetTeacherAttempt()" class="bg-slate-800 hover:bg-slate-900 text-white font-bold text-xs px-4 py-2 rounded-lg shadow transition">
                 🔒 Desbloquear Intento (Requiere Clave Docente)
@@ -68,7 +68,7 @@
 
                 <div class="col-span-4 p-2 border-r border-b border-slate-400 font-medium">Curso/año BGU: <strong>SEGUNDOS</strong></div>
                 <div class="col-span-5 p-2 border-r border-b border-slate-400 font-medium">Trimestre: <strong>II TRIMESTRE</strong></div>
-                <div class="col-span-3 p-2 border-b border-slate-400 font-medium">Límite: <strong>40 Minutos (1 intento)</strong></div>
+                <div class="col-span-3 p-2 border-b border-slate-400 font-medium">Límite: <strong>1 Hora (1 solo intento)</strong></div>
 
                 <div class="col-span-12 p-2 border-b border-slate-400 font-medium bg-slate-50 flex justify-between items-center">
                     <span>Nombre del Docente: <strong>Msc. Edwin Lliguipuma E.</strong></span>
@@ -80,7 +80,7 @@
             <div class="mt-4 p-3.5 bg-amber-50 border-l-4 border-amber-500 rounded-r text-xs md:text-sm text-amber-950">
                 <p class="font-bold text-amber-900 mb-1">✏️ INSTRUCCIONES DE LA EVALUACIÓN:</p>
                 <ul class="list-disc list-inside space-y-0.5 text-slate-700">
-                    <li>Dispones de exactamente <strong>40 MINUTOS (40:00 min)</strong> para resolver las 10 preguntas (1 punto c/u).</li>
+                    <li>Dispones de exactamente <strong>1 HORA (60:00 min)</strong> para resolver las 10 preguntas (1 punto c/u).</li>
                     <li>Solo dispones de <strong>1 INTENTO PERMITIDO</strong>. Al finalizar el tiempo o enviar, se cerrará el acceso.</li>
                     <li>Selecciona tu especialidad e ingresa tu nombre completo para desplegar el formulario.</li>
                 </ul>
@@ -149,11 +149,11 @@
 
     <script>
         const GOOGLE_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbxLLOzCD_ZvuPN9YLe1-yg3exx7rXKalmfNIm4SytFQn7SglxXdwWrH0ZD976odbKkhlQ/exec';
-        const EXAM_DURATION_SECONDS = 2400; // 40 Minutos = 2400 segundos
+        const EXAM_DURATION_SECONDS = 3600; // 1 Hora = 3600 segundos
         const TEACHER_PIN = "2711"; // CLAVE SECRETA DE DOCENTE
         let timerInterval = null;
 
-        // BANCO DE 10 PREGUNTAS CON INDICADOR DE EVALUACIÓN
+        // BANCO DE 10 PREGUNTAS CON INDICADORES DE EVALUACIÓN
         const examDatabase = {
             informatica: [
                 {
@@ -508,7 +508,7 @@
                 if (remainingSeconds <= 0) {
                     clearInterval(timerInterval);
                     document.getElementById('timerDisplay').innerText = "00:00";
-                    alert('⏰ ¡El tiempo de 40 Minutos ha expirado! Tu evaluación se enviará automáticamente.');
+                    alert('⏰ ¡El tiempo de 1 Hora ha expirado! Tu evaluación se enviará automáticamente.');
                     submitExam(true);
                 } else {
                     const minutes = Math.floor(remainingSeconds / 60);
